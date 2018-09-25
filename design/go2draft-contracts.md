@@ -1837,8 +1837,8 @@ More experience will be needed to see whether this is a problem.
 
 If a unary contract such as 
 ```Go
-type addOp(xy T) contract {
-    var z int = x + y
+type addOp(x T) contract {
+    var z int = x + x
 }
 ```
 
