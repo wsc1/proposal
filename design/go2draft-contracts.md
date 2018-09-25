@@ -1806,8 +1806,6 @@ It’s less clear what it permits in the function using this contract.
 For example, does it permit the function to call the `String` method
 and assign the result to a variable of empty interface type?
 
-TBD(wsc): it says that there is a return type to the method String
-
 
 ##### Pointer vs. value methods in contracts
 
@@ -1834,6 +1832,38 @@ write generic function, and we believe that most generic functions
 will have only non-existent or trivial requirements on their type
 parameters.
 More experience will be needed to see whether this is a problem.
+
+##### Unary contracts as types applied with example code
+
+If a unary contract such as 
+```Go
+type addOp(xy T) contract {
+    var z int = x + y
+}
+```
+
+is used as a type, for example
+```Go
+func F(x addOp) {
+   z := x + x
+}
+```
+
+Then there is no method implementing the addition operator, since
+x is boxed.
+
+Numerous discussions have expressed the idea of using builtin methods
+which correspond to usage examples and operators, such as in Python's
+`__add__` method.
+
+For the moment, this design only supports implementations of actual
+Go methods, as in the existing Go1 interfaces.   This is not a problem
+of compatibility, but it is an unnatural restriction.
+If and when defining some builtin operations via methods becomes possible,
+then they may be dispatched with Go2 contracts as in this design.
+
+
+
 
 #### Discarded ideas
 
