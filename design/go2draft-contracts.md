@@ -326,7 +326,7 @@ and interfaces.
 Today one may define a variation of Stringify above without 
 contracts.
 ```Go
-interface Stringer {
+type Stringer interface {
     String() string
 } /* builtin */
 func Stringify(s []Stringer) (ret []string) {
@@ -1253,7 +1253,7 @@ not use `==` to compare values of slice, map, or function type).
 This is easy to address using a contract.
 
 ```Go
-contract comparable(x T) {
+type comparable(x T) contract {
 	x == x
 }
 
@@ -1307,7 +1307,7 @@ numeric types:
 ```Go
 package check
 
-contract convert(t To, f From) {
+type convert(t To, f From) contract {
 	To(f)
 	From(t)
 	f == f
@@ -1336,7 +1336,7 @@ This is most naturally written as an assignment from an untyped
 constant.
 
 ```Go
-contract untyped(x T) {
+type untyped(x T) contract {
 	x = 0
 }
 ```
@@ -1361,7 +1361,7 @@ If the contract did not say `x = 1000`, the expression `v + 1000` would be
 invalid.
 
 ```Go
-contract add1K(x T) {
+type add1K(x T) contract {
 	x = 1000
 	x + x
 }
