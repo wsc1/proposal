@@ -195,8 +195,8 @@ contract between the generic code and calling code.
 
 ### Contract syntax
 
-In this design, a contract body has the same general form as a function,
-with one exception.
+In this design, a contract is a type declaration whose body has the same general 
+form as a function, with one exception.
 The body is never executed.  
 Instead, it describes, a set of types.
 
@@ -218,9 +218,9 @@ testing for equality, assignability, addressability, dereferencing pointers, etc
 
 Contract bodies have one special syntax in addition to the description of the
 types by means of examples.  
-In particular, a contract body may contain a type
-parameter, such as `x` in the example above, following by a colon `:`, followed
-by a bracketed list of method signatures as in Go's interfaces today.
+In particular, a contract body may contain an example parameter, such as `x` in
+above, following by a colon `:`, followed by a bracketed list of method
+signatures as in Go's interfaces today.
 
 For example, one may write
 
@@ -1462,11 +1462,11 @@ The contract body can use `var y = x.f` to describe the field’s type.
 ```Go
 package move
 
-contract counter(x T) {
+type counter(x T) contract {
 	var _ int = x.Count
 }
 
-contract counters(T1, T2) { // as with a func, parameter names may be omitted.
+type  counters(T1, T2) contract { // as with a func, parameter names may be omitted.
 	// Use contract embedding to say that both types must have a
 	// Count field of type int.
 	counter(T1)
@@ -1498,6 +1498,7 @@ exhaustive set of rules describing when a contract body cannot be
 satisfied.
 
 It may be appropriate to add a vet check for this, if possible.
+NB(wsc): sounds like a SAT problem to me.
 
 ### Implementation
 
@@ -1749,6 +1750,9 @@ the type arguments from the regular arguments.
 The current design seems to be the best, but perhaps something
 better is possible.
 
+NB(wsc): suggest to use square brackets for function type params and parens for
+type type params.
+
 
 ##### What does := mean in a contract body?
 
@@ -1804,24 +1808,6 @@ detail.
 This section lists some of those ideas in the hopes that it will help
 to reduce repetitive discussion.
 The ideas are presented in the form of a FAQ.
-
-##### Why not use interfaces instead of contracts?
-
-_The interface method syntax is familiar._
-_Writing contract bodies with `x + x` is ordinary Go syntax, but it_
-_is stylized, repetitive, and looks weird._
-
-It is unclear how to represent operators using interface methods.
-We considered syntaxes like `+(T, T) T`, but that is confusing and
-repetitive.
-Also, a minor point, but `==(T, T) bool` does not correspond to the
-`==` operator, which returns an untyped boolean value, not `bool`.
-We also considered writing simply `+` or `==`.
-That seems to work but unfortunately the semicolon insertion rules
-require writing a semicolon after each operator at the end of a line.
-Using contracts that look like functions gives us a familiar syntax at
-the cost of some repetition.
-These are not fatal problems, but they are difficulties.
 
 ##### Why not put type parameters on packages?
 
@@ -2654,7 +2640,7 @@ assertions and is compile-time type-safe.
 ## Back to interfaces
 Now suppose we 
 1. First replace the keyword 'contract' in this design with 'interface' and
-1. Then make the case of
+1. Then make the case of Go1's interfaces
 ```Go
 type X interface {
     // ... as per Go 1
@@ -2669,5 +2655,6 @@ type X(x T) interface {
 }
 ```
 
-Then we have unified types and interfaces and made it backward compatible syntactically (I think).
+After doing the above, we have unified types and interfaces and made it
+backward compatible syntactically (I think).
 
