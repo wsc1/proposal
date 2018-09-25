@@ -1109,7 +1109,7 @@ This is only an issue when the type is instantiated in place.
 
 ### Reflection
 
-We do not propose to change the reflect package in any way.
+We do not propose to change the reflect package in any significant way
 When a type or function is instantiated, all of the type parameters
 will become ordinary non-generic types.
 The `String` method of a `reflect.Type` value of an instantiated type
@@ -1119,6 +1119,16 @@ For example, `List(int)`.
 It’s impossible for non-generic code to refer to generic code without
 instantiating it, so there is no reflection information for
 uninstantiated generic types or functions.
+
+However, all references to interfaces in package reflect would apply
+to their new implementation in this design, which is essentially 
+unary contracts.  As many ways exist to enforce existence of methods
+by contracts, only those methods which are explicitly declared are
+available via methods of reflect.Type.
+
+It may be useful to extend the contract body as a list of statements
+using go syntax package.  But this is out of scope for this stage of 
+this design.
 
 ### Contracts details
 
