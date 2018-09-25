@@ -14,7 +14,8 @@ We suggest extending the Go language to add optional type parameters
 to types and functions.
 Type parameters may be constrained by contracts: they may be used as
 ordinary types that only support the operations described by the
-contracts. Contracts are thus extensions of interfaces which allow
+contracts. 
+Contracts are thus extensions of interfaces which allow
 specifying more than method names.
 
 Type inference via a unification algorithm is supported to permit
@@ -317,7 +318,8 @@ function definition.
 
 #### Using a contract as a type
 The Stringify example above shows a critical difference between contracts
-and interfaces.  Today one may define a variation of Stringify above without 
+and interfaces.  
+Today one may define a variation of Stringify above without 
 contracts.
 ```Go
 interface Stringer {
@@ -331,9 +333,11 @@ func Stringify(s []Stringer) (ret []string) {
 }
 ```
 
-But this is in fact different.  Notably, each element of s may have a different
+But this is in fact different.  
+Notably, each element of s may have a different
 type and thus must be boxed and the method call to String() must be looked up
-for each element.  In the contracts version, each element in s is of one
+for each element.  
+In the contracts version, each element in s is of one
 concrete type. 
 
 In many situations one of the two behaviors is desireable.
@@ -354,7 +358,8 @@ This has the effect of instructing the compiler to box type parameters
 like `T` in the example above in the same way interfaces are currently 
 implemented.
 
-This only works when the contract has one type parameter.  When a contract
+This only works when the contract has one type parameter.  
+When a contract
 has more than one type parameter, it is no longer really a type but rather
 a relation between types.
 
@@ -512,8 +517,10 @@ The restriction for a single contract thus only applies to the type parameters.
 ### Parameterized types
 
 The contracts mechanism above provides one way of creating parameterized types
-and generic functions.  But we want generic types for other type expressions as
-well.  We suggest that other type expressions be extended to take type
+and generic functions.  
+But we want generic types for other type expressions as
+well.  
+We suggest that other type expressions be extended to take type
 parameters as well
 
 ```Go
