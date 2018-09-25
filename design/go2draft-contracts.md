@@ -385,8 +385,8 @@ func Stringify(s []stringer) (ret []string) {
 }
 ```
 
-This has the effect of instructing the compiler to box type parameters
-like `T` in the example above in the same way interfaces are currently 
+This has the effect of instructing the compiler to box values
+like `v` in the example above in the same way interfaces are currently 
 implemented.
 
 This only works when the contract has one type parameter.  
