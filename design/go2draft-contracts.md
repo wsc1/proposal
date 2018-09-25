@@ -236,7 +236,7 @@ type stringer(x T) contract {
 ### Using a contract to verify type arguments
 
 A contract serves two purposes.
-First, contracts are used to validate a set of type arguments.
+First, contracts are used to validate type arguments.
 As shown above, when a function with type parameters is called, it
 will be called with a set of type arguments.
 When the compiler sees the function call, it will use the contract to
@@ -259,6 +259,32 @@ value of a type that is assignable to `string`. (As it happens, the
 only type assignable to `string` is, in fact, `string`.)
 If any of those statements about the type argument are not true, the
 contract body will fail when it is type checked.
+
+#### Unary contracts as types
+Contracts which have only one type argument are unary. They thus
+describe a restriction on a type.  
+As such, they may be used just
+as ordinary types.  
+When they are used as ordinary types, the 
+the type argument is implicitly the type of the value which is asserted
+to implement the contract.   For example
+
+```Go
+type stringer(x T) contract {
+   x: {
+       String() string
+   }
+}
+var er stringer
+```
+
+describes the variable `er` with type stringer.  er is not a concrete value
+but rather a boxed value that must conform to `stringer`.  Unary contracts
+which are applied as types also validates the (implicit) type argument of
+the associated value.
+
+
+
 
 ### The party of the second part
 
