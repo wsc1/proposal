@@ -69,7 +69,7 @@ examples and use of a new construct called _contracts_.
 This will involve defining a new keyword, `contract`.
 1. We will then replace the keyword `contract` with `interface`,
 and define Go's current interfaces as syntactic sugar on
-top of contracts.
+top of contracts which use the 'interface' keyword.
 
 The final steps gives backward compatibility, and unifies 
 the notion of contracts and interfaces.
@@ -195,8 +195,10 @@ contract between the generic code and calling code.
 
 ### Contract syntax
 
-In this design, a contract body has the same general form as a function.
-The body is never executed.  Instead, it describes, a set of types.
+In this design, a contract body has the same general form as a function,
+with one exception.
+The body is never executed.  
+Instead, it describes, a set of types.
 
 For the `Stringify` example, we need to write a contract that says
 that the type has a `String` method that takes no arguments and
@@ -209,14 +211,16 @@ type stringer(x T) contract  {
 }
 ```
 
-The above mechanism describes the type by example.  It can be used with arbitrariry
+The above mechanism describes the type by example.  
+It can be used with arbitrariry
 language constructs, such as giving examples of indexing with square brackets, 
 testing for equality, assignability, addressability, dereferencing pointers, etc.
 
 Contract bodies have one special syntax in addition to the description of the
-types by means of examples.  In particular, A contract body may contain a type
+types by means of examples.  
+In particular, a contract body may contain a type
 parameter, such as `x` in the example above, following by a colon `:`, followed
-by a list of method signatures as in Go's interfaces today.
+by a bracketed list of method signatures as in Go's interfaces today.
 
 For example, one may write
 
@@ -336,11 +340,12 @@ func Stringify(s []Stringer) (ret []string) {
 But this is in fact different.  
 Notably, each element of s may have a different
 type and thus must be boxed and the method call to String() must be looked up
-for each element.  
+for each element.  We call this _variadic_ type instantiation.
 In the contracts version, each element in s is of one
 concrete type. 
 
-In many situations one of the two behaviors is desireable.
+In many situations one of the two behaviors is desireable, in some
+certainly a mix of the two behaviors is desireable.
 
 To achieve _variadic_ type instantiation of a contract, we use can
 use it directly as a type
@@ -362,10 +367,6 @@ This only works when the contract has one type parameter.
 When a contract
 has more than one type parameter, it is no longer really a type but rather
 a relation between types.
-
-
-
-
 
 
 ### Contract syntactic details
@@ -2652,8 +2653,8 @@ assertions and is compile-time type-safe.
 
 ## Back to interfaces
 Now suppose we 
-1. Replace the keyword 'contract' in this design; and
-1. Make the case of
+1. First replace the keyword 'contract' in this design with 'interface' and
+1. Then make the case of
 ```Go
 type X interface {
     // ... as per Go 1
