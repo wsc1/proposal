@@ -2,7 +2,11 @@
 
 Ian Lance Taylor\
 Robert Griesemer\
+
 August 27, 2018
+
+Modified by Scott Cotton
+Sep 24, 2018
 
 ## Abstract
 
@@ -10,11 +14,13 @@ We suggest extending the Go language to add optional type parameters
 to types and functions.
 Type parameters may be constrained by contracts: they may be used as
 ordinary types that only support the operations described by the
-contracts.
+contracts. Contracts are thus extensions of interfaces which allow
+specifying more than method names.
+
 Type inference via a unification algorithm is supported to permit
 omitting type arguments from function calls in many cases.
-Depending on a detail, the design can be fully backward compatible
-with Go 1.
+The design can be fully backward compatible with Go 1.
+
 
 For more context, see the [generics problem overview](go2draft-generics-overview.md).
 
@@ -54,7 +60,18 @@ similarities but are not always the same.
 
 ## Design
 
-We will describe the complete design in stages based on examples.
+We will describe the complete design by 
+
+1. First, supposing that Go has no interface types.
+1. Second we will build a complete design by means of
+examples and use of a new construct called _contracts_.
+This will involve defining a new keyword, `contract`.
+1. We will then replace the keyword `contract` with `interface`,
+and define Go's current interfaces as syntactic sugar on
+top of contracts.
+
+The final steps gives backward compatibility, and unifies 
+the notion of contracts and interfaces.
 
 ### Type parameters
 
@@ -112,6 +129,7 @@ At the call site, the `type` keyword is not used.
 ```Go
 	Print(int)([]int{1, 2, 3})
 ```
+
 
 ### Type contracts
 
@@ -176,9 +194,8 @@ contract between the generic code and calling code.
 
 ### Contract syntax
 
-In this design, a contract has the same general form as a function.
-The function body is never executed.
-Instead, it describes, by example, a set of types.
+In this design, a contract body has the same general form as a function.
+The body is never executed.  Instead, it describes, a set of types.
 
 For the `Stringify` example, we need to write a contract that says
 that the type has a `String` method that takes no arguments and
@@ -186,14 +203,30 @@ returns a value of type `string`.
 Here is one way to write that:
 
 ```Go
-contract stringer(x T) {
-	var s string = x.String()
+type stringer(x T) contract  {
+    var s string = x.String()
 }
 ```
 
-A contract is introduced with a new keyword `contract`.
-The definition of a contract looks like the definition of a function,
-except that the parameter types must be simple identifiers.
+The above mechanism describes the type by example.  It can be used with arbitrariry
+language constructs, such as giving examples of indexing with square brackets, 
+testing for equality, assignability, addressability, dereferencing pointers, etc.
+
+Contract bodies have one special syntax in addition to the description of the
+types by means of examples.  In particular, A contract body may contain a type
+parameter, such as `x` in the example above, following by a colon `:`, followed
+by a list of method signatures as in Go's interfaces today.
+
+For example, one may write
+
+```Go
+type stringer(x T) contract {
+    x: {
+        String() string
+    }
+}
+```
+
 
 ### Using a contract to verify type arguments
 
@@ -208,9 +241,7 @@ error: the call is using types that the function’s contract does not
 permit.
 
 To validate the type arguments, each of the contract’s parameter types
-is replaced with the corresponding type argument (there must be
-exactly as many type arguments as there are parameter types; contracts
-may not be variadic).
+is replaced with the corresponding type argument 
 The body of the contract is then type checked as though it were an
 ordinary function.
 If the type checking succeeds, the type arguments are valid.
@@ -284,6 +315,54 @@ has type parameters; when validating the contract, the type parameters
 are passed to the function in the order in which they appear in the
 function definition.
 
+#### Using a contract as a type
+The Stringify example above shows a critical difference between contracts
+and interfaces.  Today one may define a variation of Stringify above without 
+contracts.
+```Go
+interface Stringer {
+    String() string
+} /* builtin */
+func Stringify(s []Stringer) (ret []string) {
+    for _, v := range s {
+        ret = append(re, v.String())
+    }
+    return ret
+}
+```
+
+But this is in fact different.  Notably, each element of s may have a different
+type and thus must be boxed and the method call to String() must be looked up
+for each element.  In the contracts version, each element in s is of one
+concrete type. 
+
+In many situations one of the two behaviors is desireable.
+
+To achieve _variadic_ type instantiation of a contract, we use can
+use it directly as a type
+
+```Go
+func Stringify(s []stringer) (ret []string) {
+	for _, v := range s {
+		ret = append(ret, v.String()) // now valid
+	}
+	return ret
+}
+```
+
+This has the effect of instructing the compiler to box type parameters
+like `T` in the example above in the same way interfaces are currently 
+implemented.
+
+This only works when the contract has one type parameter.  When a contract
+has more than one type parameter, it is no longer really a type but rather
+a relation between types.
+
+
+
+
+
+
 ### Contract syntactic details
 
 Before we continue, let’s cover a few details of the contract syntax.
@@ -298,7 +377,7 @@ For example, this simple contract says that a value of type `From` may
 be converted to the type `To`.
 
 ```Go
-contract convertible(_ To, f From) {
+type convertible(_ To, f From) contract {
 	To(f)
 }
 ```
@@ -348,7 +427,7 @@ from other packages, permitting a contract to easily say things like
 "this type must support the `io.Reader` interface:"
 
 ```Go
-contract Readable(r T) {
+type Readable(r T) contract {
 	io.Reader(r)
 }
 ```
@@ -367,36 +446,6 @@ anything along those lines.
 Of course, it is completely pointless to use a `goto` statement, or a
 `break`, `continue`, or `fallthrough` statement, in a contract body,
 as these statements do not say anything about the type arguments.
-
-#### The contract keyword
-
-Contracts may only appear at the top level of a package.
-
-While contracts could be defined to work within the body of a
-function, it’s hard to think of realistic examples in which they would
-be useful.
-We see this as similar to the way that methods can not be defined
-within the body of a function.
-A minor point is that only permitting contracts at the top level
-permits the design to be Go 1 compatible.
-
-There are a few ways to handle the syntax:
-
-* We could make `contract` be a keyword only at the start of a
-  top-level declaration, and otherwise be a normal identifier.
-* We could declare that if you use `contract` at the start of a
-  top-level declaration, then it becomes a keyword for the duration of
-  that package.
-* We could make `contract` always be a keyword, albeit one that can
-  only appear in one place, in which case this design is not Go 1
-  compatible.
-
-#### Exported contracts
-
-Like other top level declarations, a contract is exported if its name
-starts with an upper-case letter.
-An exported contract may be used by functions, types, or contracts in other
-packages.
 
 ### Multiple type parameters
 
@@ -417,11 +466,11 @@ In `Print2` `s1` and `s2` may be slices of different types.
 In `Print2Same` `s1` and `s2` must be slices of the same element
 type.
 
-Although functions may have multiple type parameters, they may only
+Although functions may have multiple type parameters, they may only 
 have a single contract.
 
 ```Go
-contract viaStrings(t To, f From) {
+type viaStrings(t To, f From) contract {
 	var x string = f.String()
 	t.Set(string("")) // could also use t.Set(x)
 }
@@ -435,10 +484,37 @@ func SetViaStrings(type To, From viaStrings)(s []From) []To {
 }
 ```
 
+Note however, since unary contracts are types, one may have contracts
+as types in addition to as type parameters.  An example follows.
+
+```Go
+type stringer(x T) contract {
+    x: {
+        String() string
+    }
+}
+type viaStrings(t To, f From) contract {
+	var x string = f.String()
+	t.Set(string("")) // could also use t.Set(x)
+}
+
+func SetViaStringsWith(type To, From viaStrings)(s []From, with stringer) []To {
+	r := make([]To, len(s))
+	for i, v := range s {
+		r[i].Set(fmt.Sprintf("%s-%s", v.String(), with))
+	}
+	return r
+}
+```
+
+The restriction for a single contract thus only applies to the type parameters.
+
 ### Parameterized types
 
-We want more than just generic functions: we also want generic types.
-We suggest that types be extended to take type parameters.
+The contracts mechanism above provides one way of creating parameterized types
+and generic functions.  But we want generic types for other type expressions as
+well.  We suggest that other type expressions be extended to take type
+parameters as well
 
 ```Go
 type Vector(type Element) []Element
@@ -457,6 +533,16 @@ This is called _instantiation_.
 ```Go
 var v Vector(int)
 ```
+
+
+The same works with contracts
+```Go
+type C(t T) contract {
+    t + t
+}
+var v C(int)
+```
+
 
 Parameterized types can have methods.
 The receiver type of a method must list the type parameters.
@@ -477,6 +563,7 @@ type List(type Element) struct {
 	next *List(Element)
 	val  Element
 }
+
 
 // This is INVALID.
 type P(type Element1, Element2) struct {
@@ -558,8 +645,8 @@ contract call.
 This contract embeds the contract `stringer` defined earlier.
 
 ```Go
-contract PrintStringer(x X) {
-	stringer(X)
+type PrintStringer(x X) contract {
+	stringer(x)
 	x.Print()
 }
 ```
@@ -567,7 +654,7 @@ contract PrintStringer(x X) {
 This is roughly equivalent to
 
 ```Go
-contract PrintStringer(x X) {
+type PrintStringer(x X) contract {
 	var s string = x.String()
 	x.Print()
 }
@@ -587,7 +674,7 @@ package comparable
 
 // The equal contract describes types that have an Equal method for
 // the same type.
-contract equal(v T) {
+type equal contract(v T) {
 	// All that matters is type checking, so reusing v as the argument
 	// means that the type argument must have a Equal method such that
 	// the type argument itself is assignable to the Equal method’s
@@ -648,7 +735,7 @@ like finding the shortest path.
 ```Go
 package graph
 
-contract G(n Node, e Edge) {
+type G(n Node, e Edge) contract {
 	var _ []Edge = n.Edges()
 	var from, to Node = e.Nodes()
 }
@@ -682,25 +769,12 @@ There are no interface types here, but we can instantiate
 var g = graph.New(*Vertex, *FromTo)([]*Vertex{ ... })
 ```
 
-`*Vertex` and `*FromTo` are not interface types, but when used
-together they define methods that implement the contract `graph.G`.
-Because of the way that the contract is written, we could also use the
-non-pointer types `Vertex` and `FromTo`; the contract implies that the
-function body will always be able to take the address of the argument
-if necessary, and so will always be able to call the pointer method.
-
-Although `Node` and `Edge` do not have to be instantiated with
-interface types, it is also OK to use interface types if you like.
-
-```Go
-type NodeInterface interface { Edges() []EdgeInterface }
-type EdgeInterface interface { Nodes() (NodeInterface, NodeInterface) }
-```
-
-We could instantiate `graph.Graph` with the types `NodeInterface` and
-`EdgeInterface`, since they implement the `graph.G` contract.
-There isn’t much reason to instantiate a type this way, but it is
-permitted.
+When `*Vertex` and `*FromTo` are used together they define methods that
+implement the contract `graph.G`.  Because of the way that the contract is
+written, we could also use the non-pointer types `Vertex` and `FromTo`; the
+contract implies that the function body will always be able to take the address
+of the argument if necessary, and so will always be able to call the pointer
+method.
 
 This ability for type parameters to refer to other type parameters
 illustrates an important point: it should be a requirement for any
@@ -711,13 +785,10 @@ ways that the compiler can check.
 ### Values of type parameters are not boxed
 
 In the current implementations of Go, interface values always hold
-pointers.
-Putting a non-pointer value in an interface variable causes the value
-to be _boxed_.
-That means that the actual value is stored somewhere else, on the heap
-or stack, and the interface value holds a pointer to that location.
+pointers.  Recall that in this design, there are no interfaces to consider
+as of yet, we have assumed temporarily that Go has no interfaces.
 
-In contrast to interface values, values of instantiated polymorphic types are not boxed.
+Values of instantiated polymorphic types are not boxed.
 For example, let’s consider a function that works for any type `T`
 with a `Set(string)` method that initializes the value based on a
 string, and uses it to convert a slice of `string` to a slice of `T`.
@@ -725,7 +796,7 @@ string, and uses it to convert a slice of `string` to a slice of `T`.
 ```Go
 package from
 
-contract setter(x T) {
+type setter(x T) contract {
 	var _ error = x.Set(string)
 }
 
@@ -943,6 +1014,8 @@ var V = Pair{1, 2} // inferred as Pair(int){1, 2}
 
 It’s not clear how often this will arise in real code.)
 
+
+
 ### Instantiating a function
 
 Go normally permits you to refer to a function without passing any
@@ -979,7 +1052,7 @@ For example, this code is permitted even if it is called with a type
 argument that is not an interface type.
 
 ```Go
-contract byteReader(x T) {
+type byteReader(x T) contract {
 	// This expression says that x is convertible to io.Reader, or,
 	// in other words, that x has a method Read([]byte) (int, error).
 	io.Reader(x)
@@ -1092,8 +1165,9 @@ simple assignment statement like the ones shown above.
   field with function type.
 
 When a contract needs to describe one of these cases, it can use a
-type conversion to an interface type.
-The interface type permits the method to be precisely described.
+type conversion to an interface type, or it can specify them using
+the type method list syntax.
+Either syntax permits the method to be precisely described.
 If the conversion to the interface type passes the type checker, then
 the type argument must have a method of that exact type.
 
@@ -1108,7 +1182,7 @@ However, it is possible to write a function body that can only call
 a value method, not a pointer method.  For example:
 
 ```Go
-contract adjustable(x T) {
+type adjustable(x T) contract {
 	var _ T = x.Adjust()
 	x.Apply()
 }
@@ -1129,7 +1203,7 @@ method.
 That can be done like this:
 
 ```Go
-contract adjustable(x T) {
+type adjustable(x T) contract {
 	var _ T = x.Adjust()
 	var f func() T
 	f().Apply()
@@ -1139,6 +1213,8 @@ contract adjustable(x T) {
 The rule is that if the contract body contains a method call on a
 non-addressable value, then the function body may call the method on a
 non-addressable value.
+
+NB(wsc): this is a wart.
 
 #### Operators
 
@@ -1665,6 +1741,7 @@ the type arguments from the regular arguments.
 The current design seems to be the best, but perhaps something
 better is possible.
 
+
 ##### What does := mean in a contract body?
 
 If a contract body uses a short declaration, such as
@@ -1680,6 +1757,9 @@ returns a single result of any type.
 It’s less clear what it permits in the function using this contract.
 For example, does it permit the function to call the `String` method
 and assign the result to a variable of empty interface type?
+
+TBD(wsc): it says that there is a return type to the method String
+
 
 ##### Pointer vs. value methods in contracts
 
@@ -1763,6 +1843,9 @@ When parsing a type declaration `type A [T] int` it’s ambiguous
 whether this is a parameterized type defined (uselessly) as `int` or
 whether it is an array type with `T` elements.
 
+NB(wsc): it might be nice to use squre brackets for function type parameters
+and parens for type type parameters.
+
 ##### Why not use `F«T»`?
 
 We considered it but we couldn’t bring ourselves to require
@@ -1827,7 +1910,7 @@ need for boilerplate definitions in order to use `sort.Sort`.
 With this design, we can add to the sort package as follows:
 
 ```Go
-contract ordered(e Ele) { e < e }
+type ordered(e Ele) contract { e < e }
 
 type orderedSlice(type Ele ordered) []Ele
 
@@ -1967,7 +2050,7 @@ methods rather than operators like `[]`.
 // Package set implements sets of any type.
 package set
 
-contract comparable(Ele) { Ele == Ele }
+type comparable(Ele) contract { Ele == Ele }
 
 type Set(type Ele comparable) map[Ele]struct{}
 
@@ -2324,11 +2407,11 @@ package metrics
 
 import "sync"
 
-contract comparable(v T)  {
+type comparable(v T) contract {
 	v == v
 }
 
-contract cmp1(T) {
+type cmp1(T) contract {
 	comparable(T) // contract embedding
 }
 
@@ -2346,7 +2429,7 @@ func (m *Metric1(T)) Add(v T) {
 	m[v]++
 }
 
-contract cmp2(T1, T2) {
+type cmp2(T1, T2) contract {
 	comparable(T1)
 	comparable(T2)
 }
@@ -2370,7 +2453,7 @@ func (m *Metric2(T1, T2)) Add(v1 T1, v2 T2) {
 	m[key(T1, T2){v1, v2}]++
 }
 
-contract cmp3(T1, T2, T3) {
+type cmp3(T1, T2, T3) contract {
 	comparable(T1)
 	comparable(T2)
 	comparable(T3)
@@ -2559,3 +2642,24 @@ var ServerContextKey = context.NewKey(*Server)("http_server")
 Code that uses `Key.WithValue` and `Key.Value` instead of
 `context.WithValue` and `context.Value` does not need any type
 assertions and is compile-time type-safe.
+
+## Back to interfaces
+Now suppose we 
+1. Replace the keyword 'contract' in this design; and
+1. Make the case of
+```Go
+type X interface {
+    // ... as per Go 1
+}
+```
+syntactic sugar for
+```Go
+type X(x T) interface {
+    x: {
+        // ... as per Go 1
+    }
+}
+```
+
+Then we have unified types and interfaces and made it backward compatible syntactically (I think).
+
