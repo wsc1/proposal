@@ -198,7 +198,7 @@ contract between the generic code and calling code.
 In this design, a contract is a type declaration whose body has the same general 
 form as a function, with one exception.
 The body is never executed.  
-Instead, it describes, a set of types.
+Instead, it describes, a set of types by means of example usage.
 
 For the `Stringify` example, we need to write a contract that says
 that the type has a `String` method that takes no arguments and
