@@ -1928,7 +1928,7 @@ func MulsStatic(type T Multipliable)(vals ...T) T {
 }
 
 // the variadic/dynamic/boxed case
-func MulsBoxed(a, b, c Multipliable) Multipliable {
+func MulsBoxed(vals ...Multipliable) Multipliable {
     var res Multipliable = 1
     for _, v := range vals {
         res = res * v
