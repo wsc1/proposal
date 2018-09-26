@@ -498,8 +498,8 @@ In `Print2` `s1` and `s2` may be slices of different types.
 In `Print2Same` `s1` and `s2` must be slices of the same element
 type.
 
-Although functions may have multiple type parameters, they may only 
-have a single contract.
+Although functions may have multiple type parameters, these type parameter
+may only have a single contract.
 
 ```Go
 type viaStrings(t To, f From) contract {
