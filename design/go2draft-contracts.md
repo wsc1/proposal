@@ -1862,6 +1862,11 @@ of compatibility, but it is an unnatural restriction.
 If and when defining some builtin operations via methods becomes possible,
 then they may be dispatched with Go2 contracts as in this design.
 
+This later has been proposed as part of the feedback 
+[here](https://gist.github.com/rogpeppe/0a87ef702189689201ef1d4a170939ac).
+
+TBD(wsc): recast above gist in terms of unified contracts and interfaces.
+
 
 
 
