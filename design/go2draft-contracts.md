@@ -7,6 +7,7 @@ August 27, 2018
 
 Modified by Scott Cotton
 Sep 24, 2018
+[diff](https://github.com/golang/proposal/compare/master...wsc1:master)
 
 ## Abstract
 
