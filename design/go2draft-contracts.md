@@ -796,8 +796,8 @@ type FromTo struct { ... }
 type (ft *FromTo) Nodes() (*Vertex, *Vertex) { ... }
 ```
 
-There is no variadic types instantiatio here, but we can instantiate
-`graph.Graph` using the type arguments `*Vertex` and `*FromTo`:
+There is no boxing/variadic type instantiation here, but we can instantiate
+`graph.Graph` statically using the type arguments `*Vertex` and `*FromTo`:
 
 ```Go
 var g = graph.New(*Vertex, *FromTo)([]*Vertex{ ... })
