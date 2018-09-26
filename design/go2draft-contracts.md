@@ -445,7 +445,7 @@ a bit more convenient when we get to type inference.
 
 #### Restrictions on contract bodies
 
-Although a contract looks like a function body, contracts may not
+Although a contract body looks like a function body, contracts may not
 themselves have type parameters.
 Contracts may also not have result parameters, and it follows that
 they may not use a `return` statement to return values.
@@ -456,11 +456,11 @@ This rule is intended to make it harder to accidentally change the
 meaning of a contract.
 As a compromise, a contract is permitted to refer to names imported
 from other packages, permitting a contract to easily say things like
-"this type must support the `io.Reader` interface:"
+"this type must support the `io.Reader` contract:" by embedding.
 
 ```Go
 type Readable(r T) contract {
-	io.Reader(r)
+	io.Reader(T)
 }
 ```
 
@@ -662,7 +662,7 @@ Where it would be useful to add type arguments to a method, people
 will have to write a top-level function.
 
 Making this decision avoids having to specify the details of exactly
-when a method with type arguments implements an interface.
+when a method with type arguments supports a contract.
 (This is a feature that can perhaps be added later if it proves
 necessary.)
 
@@ -780,12 +780,12 @@ func (*Graph(Node, Edge)) ShortestPath(from, to Node) []Edge { ... }
 ```
 
 At first glance it might be hard to see how this differs from similar
-code using interface types.
+code using boxed types/variadic type instantiation.
 The difference is that although `Node` and `Edge` have specific
-methods, they are not interface types.
+methods, they are not boxed.
 In order to use `graph.Graph`, the type arguments used for `Node` and
 `Edge` have to define methods that follow a certain pattern, but they
-don’t have to actually use interface types to do so.
+don’t have to actually use boxing/variadic instantiation to do so.
 
 For example, consider these type definitions in some other package:
 
@@ -796,7 +796,7 @@ type FromTo struct { ... }
 type (ft *FromTo) Nodes() (*Vertex, *Vertex) { ... }
 ```
 
-There are no interface types here, but we can instantiate
+There is no variadic types instantiatio here, but we can instantiate
 `graph.Graph` using the type arguments `*Vertex` and `*FromTo`:
 
 ```Go
@@ -1073,7 +1073,7 @@ Sometimes, though, it’s possible to use a more efficient
 implementation for some type arguments.
 The language already has mechanisms for code to find out what type it
 is working with: type assertions and type switches.
-Those are normally only permitted with interface types.
+Those are normally, in current Go1, only permitted with interface types.
 In this design, functions are also permitted to use them with values
 whose types are type parameters, or based on type parameters.
 
@@ -1083,7 +1083,8 @@ It’s merely occasionally convenient, and it may result in more
 efficient code.
 
 For example, this code is permitted even if it is called with a type
-argument that is not an interface type.
+argument that is not a variadic type instantiation/boxed type (fancy talk for 
+Go1 interface).
 
 ```Go
 type byteReader(x T) contract {
@@ -1152,10 +1153,6 @@ unary contracts.  As many ways exist to enforce existence of methods
 by contracts, only those methods which are explicitly declared are
 available via methods of reflect.Type.
 
-It may be useful to extend the contract body as a list of statements
-using go syntax package.  But this is out of scope for this stage of 
-this design.
-
 ### Contracts details
 
 Let’s take a deeper look at contracts.
@@ -1208,15 +1205,12 @@ simple assignment statement like the ones shown above.
 * There is no way to distinguish a method call from a call of a struct
   field with function type.
 
-When a contract needs to describe one of these cases, it can use a
-type conversion to an interface type, or it can specify them using
-the type method list syntax.
-Either syntax permits the method to be precisely described.
-If the conversion to the interface type passes the type checker, then
-the type argument must have a method of that exact type.
+When a contract needs to describe one of these cases, it can 
+specify them using the method list syntax, or via embedding 
+a contract which does this.
 
-An explicit method call, or a conversion to an interface type, can not
-be used to distinguish a pointer method from a value method.
+When methods are listed, one cannot distinguish a pointer method from a value
+method in example based code.
 When the function body calls a method on an addressable value, this
 doesn’t matter; since all value methods are part of the pointer type’s
 method set, an addressable value can call either pointer methods or
@@ -1361,7 +1355,7 @@ func Convert(type To, From convert)(from From) To {
 Note that the contract needs to explicitly permit both converting `To`
 to `From` and converting `From` to `To`.
 The ability to convert one way doesn’t necessarily imply being able to
-convert the other way; consider `check.Convert(int, interface{})(0, 0)`.
+convert the other way; consider (in current Go1) `check.Convert(int, interface{})(0, 0)`.
 
 #### Untyped constants
 
@@ -1864,8 +1858,10 @@ then they may be dispatched with Go2 contracts as in this design.
 
 This later has been proposed as part of the feedback 
 [here](https://gist.github.com/rogpeppe/0a87ef702189689201ef1d4a170939ac).
+also
+[here](https://gist.github.com/pat42smith/ed63aca983d4ba14fdfa320296211f40).
 
-TBD(wsc): recast above gist in terms of unified contracts and interfaces.
+TBD(wsc): recast above gists in terms of unified contracts and interfaces.
 
 
 
@@ -2249,7 +2245,7 @@ The important points are:
 * The code is written in a natural Go style, using the key and value
   types where needed.
 * The keys and values are stored directly in the nodes of the tree,
-  not using pointers and not boxed as interface values.
+  not using pointers and as not boxed values.
 
 ```Go
 // Package orderedmap provides an ordered map, implemented as a binary tree.
@@ -2726,6 +2722,15 @@ type X(x T) interface {
 }
 ```
 
+Then we have anonymous interfaces to deal with as well
+```Go
+type anything interface{}
+```
+this could similarly be rewritten to
+```Go
+type anything(x T) interface {}
+```
+
 After doing the above, we have unified types and interfaces and made it
-backward compatible syntactically (I think).
+backward compatible (I think).
 
