@@ -1860,6 +1860,8 @@ This later has been proposed as part of the feedback
 [here](https://gist.github.com/rogpeppe/0a87ef702189689201ef1d4a170939ac).
 also
 [here](https://gist.github.com/pat42smith/ed63aca983d4ba14fdfa320296211f40).
+and
+[here](https://gist.github.com/deanveloper/c495da6b9263b35f98b773e34bd41104)
 
 TBD(wsc): recast above gists in terms of unified contracts and interfaces.
 
