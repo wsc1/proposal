@@ -1090,7 +1090,7 @@ Go1 interface).
 type byteReader(x T) contract {
 	// This expression says that x is convertible to io.Reader, or,
 	// in other words, that x has a method Read([]byte) (int, error).
-	io.Reader(x)
+	io.Reader(T)
 }
 
 func ReadByte(type T byteReader)(r T) (byte, error) {
@@ -1854,7 +1854,7 @@ For the moment, this design only supports implementations of actual
 Go methods, as in the existing Go1 interfaces.   This is not a problem
 of compatibility, but it is an unnatural restriction.
 If and when defining some builtin operations via methods becomes possible,
-then they may be dispatched with Go2 contracts as in this design.
+then they may be dispatched with Go2 contracts as in this design. 
 
 This later has been proposed as part of the feedback 
 [here](https://gist.github.com/rogpeppe/0a87ef702189689201ef1d4a170939ac).
@@ -1863,9 +1863,94 @@ also
 and
 [here](https://gist.github.com/deanveloper/c495da6b9263b35f98b773e34bd41104)
 
-TBD(wsc): recast above gists in terms of unified contracts and interfaces.
+Note that in this design, the only problem is for finding an implementation
+of the the boxed case/variadic instantiation, but that for operator
+overloading the problem is more general and applies also to static type 
+parameter instantiation as well.
 
+One possible way to deal with this is to have a special package which
+takes pragma commens, like "C" is a special package for cgo whose pragma
+allow for #include's and the like, and then to use an approach similar to
+that suggested
+[here](https://gist.github.com/rogpeppe/0a87ef702189689201ef1d4a170939ac).
 
+For example:
+```Go
+// bind[+]: fix.Add
+// bind[*]: fix.Mul
+// bind[0]: Zero
+// bind[1]: One
+import _ "operator/bind"
+
+// Q 32.32 fixed point type
+type fix uint64
+const (
+    Zero fix = 0
+    One = fix(1<<32)
+)
+func (f fix) Add(a, b fix) fix {
+    return a+b
+}
+
+func (f fix) Mul(a, b fix) fix {
+    var res fix
+    // this one is more complicated, implementation omitted.
+    return res
+}
+```
+
+This would give the compiler a compile time way of associating methods of
+numeric types to operators.  
+It is also a little bit ugly, which might be
+a good thing to help restrict its usage to appropriate places.  
+Note also that this example brings up the problem of the value for 1, which
+might well reasonably vary for numeric implementations.
+Such strange things that pop up with operator overloading motivate 
+removing it from the type system and placing it in special package.
+
+Supposing the above were in place, let us examine some examples.
+
+```Go
+// a multiplication contract, it has a one.
+type Multipliable(a, b, c T) contract {
+    var one T = 1
+    c = a*b
+}
+
+// static type instantiation.
+func MulsStatic(type T Multipliable)(vals ...T) T {
+    var res T = 1
+    for _, v := range vals {
+        res = res * v
+    }
+    return res
+}
+
+// the variadic/dynamic/boxed case
+func MulsBoxed(a, b, c Multipliable) Multipliable {
+    var res Multipliable = 1
+    for _, v := range vals {
+        res = res * v
+    }
+    return res
+}
+```
+
+The fixed point case is an interesting test for operator overloading which 
+shows that normal types without constant values may not suffice.  
+It is perhaps too much to try to support, but it is also a more reasonable use case for operator
+overloading than say using `+` for slice concatenation.
+
+Binding methods to operators by means of pragma can simplify the type system. 
+
+The example above would provide a means of implementing some of the example based
+contract bodies for variadic instantiation/boxing.
+
+At any rate, all interfaces today only have listed methods, and having contracts
+require operator overloading may be just too much in one shot.  The example above
+mostly shows that binding methods to operators can fit into this contracts
+draft proposal in a way that to a reasonable extent addresses the wart of 
+using example based unary contracts as types.
 
 
 #### Discarded ideas
