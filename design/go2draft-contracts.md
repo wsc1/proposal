@@ -2819,6 +2819,6 @@ this could similarly be rewritten to
 type anything(x T) interface {}
 ```
 
-After doing the above, we have unified types and interfaces and made it
+After doing the above, we have unified contracts and interfaces and made it
 backward compatible (I think).
 
