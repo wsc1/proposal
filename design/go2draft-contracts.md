@@ -1459,7 +1459,7 @@ unnecessary conversions to `[]byte` in order to call `append` and
 `copy`, but perhaps the compiler can eliminate those.
 
 ```Go
-contract strseq(x T) {
+type strseq(x T) contract {
 	[]byte(x)
 	T([]byte{})
 	len(x)
