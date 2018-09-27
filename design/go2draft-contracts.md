@@ -219,7 +219,7 @@ testing for equality, assignability, addressability, dereferencing pointers, etc
 
 Contract bodies have one special syntax in addition to the description of the
 types by means of examples.  
-In particular, a contract body may contain an example parameter, such as `x` in
+In particular, a contract body may contain an type parameter, such as `T` in
 above, following by a colon `:`, followed by a bracketed list of method
 signatures as in Go's interfaces today.
 
@@ -227,7 +227,7 @@ For example, one may write
 
 ```Go
 type stringer(x T) contract {
-    x: {
+    T: {
         String() string
     }
 }
@@ -272,7 +272,7 @@ to implement the contract.   For example
 
 ```Go
 type stringer(x T) contract {
-   x: {
+   T: {
        String() string
    }
 }
@@ -522,7 +522,7 @@ as types in addition to as type parameters.  An example follows.
 
 ```Go
 type stringer(x T) contract {
-    x: {
+    T: {
         String() string
     }
 }
@@ -2804,7 +2804,7 @@ type X interface {
 syntactic sugar for
 ```Go
 type X(x T) interface {
-    x: {
+    X: {
         // ... as per Go 1
     }
 }
@@ -2812,13 +2812,49 @@ type X(x T) interface {
 
 Then we have anonymous interfaces to deal with as well
 ```Go
-type anything interface{}
+var x interface{}
 ```
 this could similarly be rewritten to
 ```Go
-type anything(x T) interface {}
+var x (type _(x T) interface {})
+// (This require recognizing _ as an unnamed type.)
 ```
 
 After doing the above, we have unified contracts and interfaces and made it
 backward compatible (I think).
+
+## Discussion
+This design has shown that contracts can be seen as an extension of interfaces.
+I would imagine that it would be very convenient to avoid having separate
+contracts for many existing interfaces.
+
+Some drawbacks have become clear in drafting this modification to the original
+proposal.  Mostly, there are example usages which forbid or currently forbid
+being boxed.
+
+Another example is 
+```Go
+type T(x X) contract {
+  *x
+}
+```
+
+Such a contract cannot be boxed because Go doesn't allow derefencing boxed values,
+unless it one day allows defining an operator for dereferencing.
+
+This phenomenon enlarges the space of "impossible contracts" substantially, which
+is unfortunate. 
+
+The counterbalance to these drawbacks are
+* Many interfaces may need doubles as contracts if they are separate.
+* Two constructs (contracts/interfaces) for overlapping functionality.
+* non-orthogonality of constructs (defining type constraints vs applying them statically or dynamically)
+* The drawbacks may reduce over time as user defined operators are considerred, whereas it 
+seems the complexity of implementing user defined operators may increase if contracts/interfaces are separate.
+
+
+
+
+
+
 
