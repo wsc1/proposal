@@ -2804,7 +2804,7 @@ type X interface {
 syntactic sugar for
 ```Go
 type X(x T) interface {
-    X: {
+    T: {
         // ... as per Go 1
     }
 }
@@ -2842,8 +2842,8 @@ type T(x X) contract {
 Such a contract cannot be boxed because Go doesn't allow derefencing boxed values,
 unless it one day allows defining an operator for dereferencing.
 
-This phenomenon enlarges the space of "impossible contracts" substantially, which
-is unfortunate. 
+This phenomenon enlarges the space of "impossible contracts" substantially when
+allowing unary contracts to act on runtime types, which is unfortunate. 
 
 The counterbalance to these drawbacks are
 * Many interfaces may need doubles as contracts if they are separate.
@@ -2851,6 +2851,30 @@ The counterbalance to these drawbacks are
 * non-orthogonality of constructs (defining type constraints vs applying them statically or dynamically)
 * The drawbacks may reduce over time as user defined operators are considerred, whereas it 
 seems the complexity of implementing user defined operators may increase if contracts/interfaces are separate.
+
+type a(x T) {
+    // contract goes here
+
+} /* only if type monodic */ interface {
+    //
+}
+
+
+
+type a(x T) {
+} struct {
+}
+
+type Er interface {
+}
+
+
+type Er(x T) {
+} interface {
+}
+
+
+
 
 
 
